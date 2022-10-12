@@ -138,6 +138,7 @@ const updateCf4PatientData = async (eRequest, pId) => {
   try {
     let patient_no = `${eRequest.patient_no}`;
     let case_no = `${eRequest.case_no}`;
+    let chief_complaint = `${eRequest.chief_complaint}`;
     let admitting_diagnosis = `${eRequest.admitting_diagnosis}`;
     let discharge_diagnosis = `${eRequest.discharge_diagnosis}`;
     let a_first_case_rate = `${eRequest.a_first_case_rate}`;
@@ -151,6 +152,7 @@ const updateCf4PatientData = async (eRequest, pId) => {
       await transaction.begin();
       const updateCf4PatientData = await new sql.Request(transaction).query`UPDATE UERMMMC..CF4_PATIENT_DATA
       SET 
+      CHIEF_COMPLAINT = ${chief_complaint}, 
       AD_DIAGNOSIS = ${admitting_diagnosis},
       DIS_DIAGNOSIS = ${discharge_diagnosis},
       AFIRST_CASE_RATE = ${a_first_case_rate},
@@ -215,7 +217,7 @@ const updateCf4ReasonForAdmission = async (eRequest, pId) => {
     let originating_hci = `${eRequest.originating_hci}`;
     let general_survey = `${eRequest.general_survey}`;
     let awake_and_alert = `${eRequest.awake_and_alert}`;
-    let altered_sensorium = `${eRequest.awake_and_alert}`;
+    let altered_sensorium = `${eRequest.altered_sensorium}`;
     let altered_sensorium_data = `${eRequest.altered_sensorium_data}`;
     let p_height = `${eRequest.p_height}`;
     let p_weight = `${eRequest.p_weight}`;
@@ -324,6 +326,19 @@ const updateCf4ReasonForAdmission = async (eRequest, pId) => {
     }
   } catch (error) {
     console.log(error.message);
+    return error
+  }
+}
+
+const getCf4CourseInTheWard = async (patientNo) => {
+  let pool = await sql.connect(config.sql);
+  let request = new sql.Request(pool);
+
+  try {
+    const result = await request.query`SELECT * FROM UERMMMC..CF4_COURSE_IN_THE_AWARD 
+      WHERE PATIENT_NO = ${patientNo} AND CIW_STATUS != 'DELETED'`;
+    return result.recordset;
+  } catch (error) {
     return error
   }
 }
@@ -477,6 +492,7 @@ module.exports = {
   createPatientCf4,
   getCf4PatientData,
   getCf4ReasonForAdmission,
+  getCf4CourseInTheWard,
   searchPatients,
   getPatientDetails,
   updateCf4PatientData,

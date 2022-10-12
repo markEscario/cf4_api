@@ -77,6 +77,17 @@ const getCf4ReasonForAdmission = async (req, res) => {
   }
 }
 
+const getCf4CourseInTheWard = async (req, res) => {
+  try {
+    let patientNo = req.query.patientNo
+
+    const cf4CourseInTheWard = await patientsCf4Service.getCf4CourseInTheWard(patientNo);
+    res.send(cf4CourseInTheWard);
+  } catch (error) {
+  res.status(400).send(error.message);
+  }
+}
+
 const updateCf4PatientData = async (req, res) => {
   try {
     console.log('param: ', req.params.id)
@@ -195,6 +206,7 @@ module.exports = {
   patientDetails,
   getCf4PatientData,
   getCf4ReasonForAdmission,
+  getCf4CourseInTheWard,
   createPatientCf4,
   createAdDiagnosis,
   updateCf4PatientData,
