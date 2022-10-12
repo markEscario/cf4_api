@@ -114,6 +114,16 @@ const updateCf4ReasonForAdmission = async (req, res) => {
   }
 }
 
+const createCf4CourseInTheWard = async (req, res) => {
+  try {
+    let reqData = req.body;
+
+    const cf4 = await patientsCf4Service.createCf4CourseInTheWard(reqData);
+    res.send(cf4);
+  } catch (error) {
+    res.status(400).send(error.message);
+  }
+}
 const deleteAdDiagnosis = async (req, res) => {
   try {
     console.log('d param: ', req.params.id)
@@ -208,6 +218,7 @@ module.exports = {
   getCf4ReasonForAdmission,
   getCf4CourseInTheWard,
   createPatientCf4,
+  createCf4CourseInTheWard,
   createAdDiagnosis,
   updateCf4PatientData,
   updateCf4ReasonForAdmission,

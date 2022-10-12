@@ -108,6 +108,65 @@ const createPatientCf4 = async (reqData) => {
   }
 }
 
+const createCf4CourseInTheWard = async (reqData) => {
+  try {
+    let patient_no = `${reqData.patient_no}`;
+    let case_no = `${reqData.case_no}`;
+    let doctor_order = `${reqData.doctors_order}`;
+    let emp_code = `${reqData.emp_code}`; 
+    let ciw_status = `${reqData.ciw_status}`; 
+
+    await sql.connect(config.sql);
+    let transaction = new sql.Transaction()
+    try {
+      await transaction.begin();
+      const cf4CourseInTheWard = await new sql.Request(transaction).query`INSERT INTO UERMMMC..CF4_COURSE_IN_THE_WARD
+        (
+        PATIENT_NO,
+        CASE_NO,
+        DOCTORS_ORDER,
+        EMP_CODE,
+        CIW_STATUS
+        ) 
+        VALUES 
+        (
+        ${patient_no},
+        ${case_no},
+        ${doctor_order},
+        ${emp_code},
+        ${ciw_status}
+        )`;
+      if (cf4CourseInTheWard) {
+        await new sql.Request(transaction).query`INSERT INTO UERMMMC..CF4_ACTION_LOGS
+        (
+        PATIENTNO,
+        CASENO,
+        MODULE,
+        ACTION_TYPE,
+        ACTION_DESC
+        ) 
+        VALUES 
+        (
+        ${patient_no},
+        ${case_no},
+        'CREATED COURSE IN THE WARD',
+        'CREATE',
+        'CF4'
+        )`;
+      }
+      await transaction.commit();
+      return "CF4 COURSE IN THE WARD WAS CREATED"
+
+    } catch (error) {
+      await transaction.rollback();
+      console.log(error);
+    }
+  } catch (error) {
+    console.log(error.message);
+    return error
+  }
+}
+
 const getCf4PatientData = async (patientNo) => {
   let pool = await sql.connect(config.sql);
   let request = new sql.Request(pool);
@@ -493,6 +552,7 @@ module.exports = {
   getCf4PatientData,
   getCf4ReasonForAdmission,
   getCf4CourseInTheWard,
+  createCf4CourseInTheWard,
   searchPatients,
   getPatientDetails,
   updateCf4PatientData,

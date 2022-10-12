@@ -19,6 +19,7 @@ router.put('/update_cf4_reason_for_admission/:id', PatientsCf4Controller.updateC
 
 // Course In The Ward
 router.get('/cf4_course_in_the_ward', PatientsCf4Controller.getCf4CourseInTheWard);
+router.post('/create_cf4_course_in_the_ward', PatientsCf4Controller.createCf4CourseInTheWard);
 
 router.put('/patients/:id', PatientsCf4Controller.updatePatients)
 router.put('/update_pertinent_past_medical_history/:id', PatientsCf4Controller.updatePertinentPastMedicalHistory)
