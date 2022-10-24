@@ -11,11 +11,20 @@ const getPatients = async (req, res) => {
   }
 }
 
-const searchPatients = async (req, res) => {
+const searchPatientsByLastNameCaseNo = async (req, res) => {
   try {
-    let data = req.query.searchData
+    let data = req.query
+    const results = await patientsCf4Service.searchPatientsByLastNameCaseNo(data);
+    res.send(results);
+  } catch (error) {
+    res.status(400).send(error.message);
+  }
+}
 
-    const results = await patientsCf4Service.searchPatients(data);
+const searchPatientsByDate = async (req, res) => {
+  try {
+    let data = req.query
+    const results = await patientsCf4Service.searchPatientsByDate(data);
     res.send(results);
   } catch (error) {
     res.status(400).send(error.message);
@@ -24,21 +33,10 @@ const searchPatients = async (req, res) => {
 
 const patientDetails = async (req, res) => {
   try {
-    let patientNo = req.query.patientNo
-  
-    const results = await patientsCf4Service.getPatientDetails(patientNo);
+    console.log('DTdfg', req.query)
+    let dataNo = req.query.dataNo
+    const results = await patientsCf4Service.getPatientDetails(dataNo);
     res.send(results);
-  } catch (error) {
-    res.status(400).send(error.message);
-  }
-}
-
-const createAdDiagnosis = async (req, res) => {
-  try {
-    let reqData = req.body;
-
-    const addAdDiagnosis = await patientsCf4Service.createAdDiagnosis(reqData);
-    res.send(addAdDiagnosis);
   } catch (error) {
     res.status(400).send(error.message);
   }
@@ -47,7 +45,6 @@ const createAdDiagnosis = async (req, res) => {
 const createPatientCf4 = async (req, res) => {
   try {
     let reqData = req.body;
-
     const cf4 = await patientsCf4Service.createPatientCf4(reqData);
     res.send(cf4);
   } catch (error) {
@@ -58,7 +55,6 @@ const createPatientCf4 = async (req, res) => {
 const getCf4PatientData = async (req, res) => {
   try {
     let patientNo = req.query.patientNo
-
     const cf4PatientData = await patientsCf4Service.getCf4PatientData(patientNo);
     res.send(cf4PatientData);
   } catch (error) {
@@ -88,9 +84,20 @@ const getCf4CourseInTheWard = async (req, res) => {
   }
 }
 
+const getCf4OutComeOfTreatment = async (req, res) => {
+  try {
+    let patientNo = req.query.patientNo
+
+    const cf4OutComeOfTreatment = await patientsCf4Service.getCf4OutComeOfTreatment(patientNo);
+    res.send(cf4OutComeOfTreatment);
+  } catch (error) {
+  res.status(400).send(error.message);
+  }
+}
+
 const updateCf4PatientData = async (req, res) => {
   try {
-    console.log('param: ', req.params.id)
+    console.log('param: ', req.params.id[0])
     let pId = req.params.id;
     let eRequest = req.body;
 
@@ -124,6 +131,20 @@ const createCf4CourseInTheWard = async (req, res) => {
     res.status(400).send(error.message);
   }
 }
+
+const updateCf4OutComeOfTreatment = async (req, res) => {
+  try {
+    console.log('param: ', req.params.id)
+    let pId = req.params.id;
+    let eRequest = req.body;
+
+    const editOutComeOfTreatment = await patientsCf4Service.updateCf4OutComeOfTreatment(eRequest, pId);
+    res.send(editOutComeOfTreatment);
+  } catch (error) {
+    res.status(400).send(error.message);
+  }
+}
+
 const deleteAdDiagnosis = async (req, res) => {
   try {
     console.log('d param: ', req.params.id)
@@ -212,14 +233,16 @@ const updatePatients = async (req, res) => {
 
 module.exports = {
   getPatients,
-  searchPatients,
+  searchPatientsByLastNameCaseNo,
+  searchPatientsByDate,
   patientDetails,
   getCf4PatientData,
   getCf4ReasonForAdmission,
   getCf4CourseInTheWard,
+  getCf4OutComeOfTreatment,
+  updateCf4OutComeOfTreatment,
   createPatientCf4,
   createCf4CourseInTheWard,
-  createAdDiagnosis,
   updateCf4PatientData,
   updateCf4ReasonForAdmission,
   deleteAdDiagnosis,

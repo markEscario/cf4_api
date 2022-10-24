@@ -2,6 +2,7 @@
 const config = require('../../config');
 const sql = require('mssql');
 let bcrypt = require("bcryptjs");
+const e = require('express');
 const connError = new Error('Connection Error');
 const queryError = new Error('Query Error');
 
@@ -20,8 +21,9 @@ const getPatients = async () => {
   }
 }
 
-const searchPatients = async (data) => {
-  let filter = `%${data}%`;
+const searchPatientsByLastNameCaseNo = async (data) => {
+  console.log('lastNameCaseNo: ', data.searchData)
+  let lastNameCaseNo = `${data.searchData}%`;
   let pool = await sql.connect(config.sql);
   let request = new sql.Request(pool);
 
@@ -30,25 +32,46 @@ const searchPatients = async (data) => {
       Pt INNER JOIN UERMMMC..CASES AS Cs ON Pt.PATIENTNO = Cs.PATIENTNO LEFT JOIN 
       UERMMMC..CF4_PATIENT_DATA AS Cpd ON Pt.PATIENTNO = Cpd.PATIENT_NO
       WHERE (DATEAD BETWEEN '2022-09-01 00:00:01' AND GETDATE() AND
-      Pt.LASTNAME LIKE ${filter}) OR (DATEAD BETWEEN '2022-09-01 00:00:01' AND GETDATE() AND
-      Cs.CASENO LIKE ${filter})`;
-
+      Pt.LASTNAME LIKE ${lastNameCaseNo}) OR (DATEAD BETWEEN '2022-09-01 00:00:01' 
+      AND GETDATE() AND
+      Cs.CASENO LIKE ${lastNameCaseNo})`;
     return results.recordset;
   } catch (error) {
     return error
   }
 }
 
-const getPatientDetails = async (patientNo) => {
+const searchPatientsByDate = async (data) => {
+  console.log('date: ', data.searchData)
+
+  let dateAdmittedAndDisCharge = `${data.searchData}`;
+
   let pool = await sql.connect(config.sql);
   let request = new sql.Request(pool);
 
   try {
     const results = await request.query`SELECT * FROM UERMMMC..PATIENTINFO AS 
-      Pt INNER JOIN UERMMMC..CASES AS Cs ON Pt.PATIENTNO = Cs.PATIENTNO
-      WHERE DATEAD BETWEEN '2022-09-01 00:00:01' AND GETDATE() AND
-      Pt.PATIENTNO = ${patientNo}`;
+      Pt INNER JOIN UERMMMC..CASES AS Cs ON Pt.PATIENTNO = Cs.PATIENTNO LEFT JOIN 
+      UERMMMC..CF4_PATIENT_DATA AS Cpd ON Pt.PATIENTNO = Cpd.PATIENT_NO
+      WHERE (DATEAD BETWEEN '2022-09-01 00:00:01' AND GETDATE() AND
+      CAST(Cs.DATEAD AS DATE) = ${dateAdmittedAndDisCharge})`;
+    return results.recordset;
+  } catch (error) {
+    return error
+  }
+}
 
+const getPatientDetails = async (dataNo) => {
+  let pool = await sql.connect(config.sql);
+  let request = new sql.Request(pool);
+
+  try {
+    console.log('x: ', dataNo)
+    const results = await request.query`SELECT TOP 1 * FROM UERMMMC..PATIENTINFO AS 
+      Pt INNER JOIN UERMMMC..CASES AS Cs ON Pt.PATIENTNO = Cs.PATIENTNO INNER JOIN
+      UERMMMC..CF4_PATIENT_DATA AS Cpd ON Pt.PATIENTNO = Cpd.PATIENT_NO
+      WHERE DATEAD BETWEEN '2022-09-01 00:00:01' AND GETDATE() AND
+      Cpd.DATA_NO = ${dataNo}`;
     return results.recordset;
   } catch (error) {
     return error
@@ -57,9 +80,10 @@ const getPatientDetails = async (patientNo) => {
 
 const createPatientCf4 = async (reqData) => {
   try {
+    let data_no = Math.floor(100000 + Math.random() * 900000);
     let patient_no = `${reqData.patient_no}`;
     let case_no = `${reqData.case_no}`;
-    let cf4_status = `${reqData.cf4_status}`; 
+    let cf4_status = `${reqData.cf4_status}`;
 
     await sql.connect(config.sql);
     let transaction = new sql.Transaction()
@@ -67,12 +91,14 @@ const createPatientCf4 = async (reqData) => {
       await transaction.begin();
       const cf4 = await new sql.Request(transaction).query`INSERT INTO UERMMMC..CF4_PATIENT_DATA
         (
+        DATA_NO,
         PATIENT_NO,
         CASE_NO,
         CF4_STATUS
         ) 
         VALUES 
         (
+        ${data_no},
         ${patient_no},
         ${case_no},
         ${cf4_status}
@@ -96,7 +122,7 @@ const createPatientCf4 = async (reqData) => {
         )`;
       }
       await transaction.commit();
-      return "CF4 WAS CREATED"
+      return  `${data_no}`
 
     } catch (error) {
       await transaction.rollback();
@@ -113,8 +139,8 @@ const createCf4CourseInTheWard = async (reqData) => {
     let patient_no = `${reqData.patient_no}`;
     let case_no = `${reqData.case_no}`;
     let doctor_order = `${reqData.doctors_order}`;
-    let emp_code = `${reqData.emp_code}`; 
-    let ciw_status = `${reqData.ciw_status}`; 
+    let emp_code = `${reqData.emp_code}`;
+    let ciw_status = `${reqData.ciw_status}`;
 
     await sql.connect(config.sql);
     let transaction = new sql.Transaction()
@@ -167,26 +193,32 @@ const createCf4CourseInTheWard = async (reqData) => {
   }
 }
 
-const getCf4PatientData = async (patientNo) => {
+const getCf4PatientData = async (dataNo) => {
   let pool = await sql.connect(config.sql);
   let request = new sql.Request(pool);
 
   try {
-    const result = await request.query`SELECT * FROM UERMMMC..CF4_PATIENT_DATA 
-      WHERE PATIENT_NO = ${patientNo} AND CF4_STATUS != 'DELETED'`;
+    const result = await request.query`SELECT TOP 1 * FROM UERMMMC..PATIENTINFO AS 
+    Pt INNER JOIN UERMMMC..CASES AS Cs ON Pt.PATIENTNO = Cs.PATIENTNO INNER JOIN
+    UERMMMC..CF4_PATIENT_DATA AS Cpd ON Pt.PATIENTNO = Cpd.PATIENT_NO
+    WHERE DATEAD BETWEEN '2022-09-01 00:00:01' AND GETDATE() AND
+    Cpd.DATA_NO = ${dataNo}`;
     return result.recordset;
   } catch (error) {
     return error
   }
 }
 
-const getCf4ReasonForAdmission = async (patientNo) => {
+const getCf4ReasonForAdmission = async (dataNo) => {
   let pool = await sql.connect(config.sql);
   let request = new sql.Request(pool);
 
   try {
-    const result = await request.query`SELECT * FROM UERMMMC..CF4_PATIENT_DATA 
-      WHERE PATIENT_NO = ${patientNo} AND CF4_STATUS != 'DELETED'`;
+    const result = await request.query`SELECT TOP 1 * FROM UERMMMC..PATIENTINFO AS 
+    Pt INNER JOIN UERMMMC..CASES AS Cs ON Pt.PATIENTNO = Cs.PATIENTNO INNER JOIN
+    UERMMMC..CF4_PATIENT_DATA AS Cpd ON Pt.PATIENTNO = Cpd.PATIENT_NO
+    WHERE DATEAD BETWEEN '2022-09-01 00:00:01' AND GETDATE() AND
+    Cpd.DATA_NO = ${dataNo}`;
     return result.recordset;
   } catch (error) {
     return error
@@ -195,6 +227,7 @@ const getCf4ReasonForAdmission = async (patientNo) => {
 
 const updateCf4PatientData = async (eRequest, pId) => {
   try {
+    console.log('req: ', pId)
     let patient_no = `${eRequest.patient_no}`;
     let case_no = `${eRequest.case_no}`;
     let chief_complaint = `${eRequest.chief_complaint}`;
@@ -402,6 +435,19 @@ const getCf4CourseInTheWard = async (patientNo) => {
   }
 }
 
+const getCf4OutComeOfTreatment = async (patientNo) => {
+  let pool = await sql.connect(config.sql);
+  let request = new sql.Request(pool);
+
+  try {
+    const result = await request.query`SELECT * FROM UERMMMC..CF4_PATIENT_DATA 
+      WHERE PATIENT_NO = ${patientNo} AND CF4_STATUS != 'DELETED'`;
+    return result.recordset;
+  } catch (error) {
+    return error
+  }
+}
+
 const deleteAdDiagnosis = async (eRequest, pId) => {
   try {
     let patient_no = `${eRequest.patient_no}`;
@@ -552,8 +598,9 @@ module.exports = {
   getCf4PatientData,
   getCf4ReasonForAdmission,
   getCf4CourseInTheWard,
-  createCf4CourseInTheWard,
-  searchPatients,
+  getCf4OutComeOfTreatment,
+  searchPatientsByLastNameCaseNo,
+  searchPatientsByDate,
   getPatientDetails,
   updateCf4PatientData,
   updateCf4ReasonForAdmission,
